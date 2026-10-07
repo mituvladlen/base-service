@@ -1,0 +1,37 @@
+# Builds the image and pushes <DOCKERHUB_USERNAME>/<repo-name>:2.0.0 and :latest on every push/merge to main.
+# Needs repo secrets DOCKERHUB_USERNAME and DOCKERHUB_TOKEN (Settings -> Secrets and variables -> Actions).
+# If Gabi's shared workflow is a reusable workflow, replace the job with:
+#   uses: <org>/<repo>/.github/workflows/<file>.yml@main
+name: docker-publish
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test:coverage
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:2.0.0
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ github.event.repository.name }}:latest
