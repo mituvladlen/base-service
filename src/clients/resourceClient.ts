@@ -1,5 +1,6 @@
 import { AppError } from '../errors';
 import { Cost } from '../domain/types';
+import { HttpOptions, gatewayFetch } from './httpJson';
 
 export interface ConsumeRequest {
   actionId: string;
@@ -41,21 +42,15 @@ export class MockResourceClient implements ResourceClient {
   }
 }
 
-/** Real call to our Resource Service: POST {RESOURCE_SERVICE_URL}/consume */
+/** Real call to our Resource Service through the Gateway: POST {RESOURCE_SERVICE_URL}/consume */
 export class HttpResourceClient implements ResourceClient {
-  constructor(private readonly baseUrl: string) {}
+  constructor(
+    private readonly baseUrl: string,
+    private readonly opts: HttpOptions = {}
+  ) {}
 
   async consume(req: ConsumeRequest) {
-    let res: Response;
-    try {
-      res = await fetch(`${this.baseUrl}/consume`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(req)
-      });
-    } catch {
-      throw new AppError(503, 'UPSTREAM_UNAVAILABLE', 'Resource Service is unreachable');
-    }
+    const res = await gatewayFetch(`${this.baseUrl}/consume`, 'Resource Service', { method: 'POST', body: JSON.stringify(req) }, this.opts);
     if (res.ok) return;
     const body = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string; details?: unknown } };
     if (res.status === 422 || res.status === 404) {

@@ -11,9 +11,10 @@ import { createPool, migrate, seed } from './db/pool';
 
 async function main() {
   const cfg = loadConfig();
-  const players = cfg.playerClient === 'http' ? new HttpPlayerClient(cfg.playerServiceUrl) : new MockPlayerClient(cfg.mockPlayers);
-  const world = cfg.worldClient === 'http' ? new HttpWorldClient(cfg.worldServiceUrl) : new MockWorldClient();
-  const resources = cfg.resourceClient === 'http' ? new HttpResourceClient(cfg.resourceServiceUrl) : new MockResourceClient();
+  const http = { token: cfg.serviceToken, timeoutMs: cfg.outgoingTimeoutMs };
+  const players = cfg.playerClient === 'http' ? new HttpPlayerClient(cfg.playerServiceUrl, http) : new MockPlayerClient(cfg.mockPlayers);
+  const world = cfg.worldClient === 'http' ? new HttpWorldClient(cfg.worldServiceUrl, http) : new MockWorldClient();
+  const resources = cfg.resourceClient === 'http' ? new HttpResourceClient(cfg.resourceServiceUrl, http) : new MockResourceClient();
 
   let repo: BaseRepository;
   if (cfg.storage === 'postgres') {
@@ -31,9 +32,9 @@ async function main() {
     for (const playerId of ['player-1', 'player-2', 'player-3']) await svc.createBase({ playerId }, `base-${playerId}`);
   }
 
-  createApp(svc).listen(cfg.port, () =>
+  createApp(svc, cfg).listen(cfg.port, () =>
     console.log(
-      `[base-service] listening on :${cfg.port} (storage=${cfg.storage}, player=${cfg.playerClient}, world=${cfg.worldClient}, resource=${cfg.resourceClient})`
+      `[base-service] listening on :${cfg.port} (storage=${cfg.storage}, player=${cfg.playerClient}, world=${cfg.worldClient}, resource=${cfg.resourceClient}, timeout=${cfg.requestTimeoutMs}ms, maxConcurrent=${cfg.maxConcurrentRequests})`
     )
   );
 }

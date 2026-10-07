@@ -1,4 +1,4 @@
-import { getJson } from './httpJson';
+import { HttpOptions, getJson } from './httpJson';
 
 export interface WorldClient {
   /** Barricades can only be placed in rooms that exist on the campus map. */
@@ -17,10 +17,13 @@ export class MockWorldClient implements WorldClient {
   }
 }
 
-/** Lab 2: GET {WORLD_SERVICE_URL}/rooms/:id */
+/** Lab 2, through the Gateway: GET {WORLD_SERVICE_URL}/rooms/:id */
 export class HttpWorldClient implements WorldClient {
-  constructor(private readonly baseUrl: string) {}
+  constructor(
+    private readonly baseUrl: string,
+    private readonly opts: HttpOptions = {}
+  ) {}
   async roomExists(roomId: string) {
-    return (await getJson(`${this.baseUrl}/rooms/${encodeURIComponent(roomId)}`, 'World Service')) !== null;
+    return (await getJson(`${this.baseUrl}/rooms/${encodeURIComponent(roomId)}`, 'World Service', this.opts)) !== null;
   }
 }
